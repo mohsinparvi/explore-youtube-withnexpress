@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 const app = express();
 
 // Middleware
@@ -14,6 +15,7 @@ app.use(
 app.use(express.json({ limit: "16kb" })); // parse requests of content-type - application/json
 app.use(express.urlencoded({ extended: true, limit: "16kb" })); // extended: true allows to parse nested object properties  (e.g., name[title]=foo&name[desc]=bar)
 app.use(express.static("public")); // serve static files from public folder
+app.use(cookieParser()); // parse cookies from cookie
 
 //import routes
 import healthcheckRouter from "./routes/healthcheck.routes.js";
