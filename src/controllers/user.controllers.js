@@ -6,10 +6,31 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
+
+const generateAccessAndRefreshToken = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+    return {
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      "Something went wrong while generating access and refresh token"
+    );
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, username, password } = req.body;
-  console.log("req.body", req.body);
-  console.log("REQ>BODY", fullName, email, username, password);
+
   if (![fullName, email, username, password].every((field) => field?.trim())) {
     throw new ApiError(400, "All fields are required");
   }
@@ -60,7 +81,7 @@ const registerUser = asyncHandler(async (req, res) => {
       username: username.toLowerCase(),
     });
 
-    const createdUser = await User.findById(user._id).set(
+    const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
     );
     if (!createdUser) {
@@ -85,4 +106,81 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  //req.body-> data
+  // username or emial
+  //password
+  const { username, email, password } = req.body;
+  if (!username || !email) {
+    throw new ApiError(400, "username or email is required");
+  }
+  const user = await User.findOne({
+    $or: [
+      {
+        username,
+      },
+      { email },
+    ],
+  });
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid user credentials");
+  }
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user?._id
+  );
+  const loggedInUser = await User.findById(user?._id).select(
+    "-password -refreshToken"
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200, "User logged in successfully", {
+        user: loggedInUser,
+        accessToken,
+        refreshToken,
+      })
+    );
+});
+
+const logoutUser=asyncHandler(async(req,res)=>{
+  const accessToken=req.cookies();
+})
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.body.refreshToken || req.cookies.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Refresh token is required");
+  }
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decodedToken?._id);
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token.");
+    }
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+    const options = {
+      http,
+    };
+  } catch (error) {
+    console.log("");
+  }
+});
+
+export { registerUser, loginUser, refreshAccessToken };
