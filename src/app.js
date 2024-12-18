@@ -8,12 +8,12 @@ import morgan from "morgan";
 const morganFormat = ":method :url :status :response-time ms";
 
 // Middleware
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN,
+  credentials: true, //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
 
 // common middleware
 app.use(express.json({ limit: "16kb" })); // parse requests of content-type - application/json

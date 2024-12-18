@@ -2,7 +2,10 @@ import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, username, password } = req.body;
   console.log("req.body", req.body);
@@ -47,25 +50,39 @@ const registerUser = asyncHandler(async (req, res) => {
     console.log("error uploading cover Image", error);
     throw new ApiError(500, `Failed to upload avatar`);
   }
-  const user = await User.create({
-    fullName,
-    avatar: avatar.url,
-    coverImage: coverImage.url ?? "",
-    email,
-    password,
-    username: username.toLowerCase(),
-  });
+  try {
+    const user = await User.create({
+      fullName,
+      avatar: avatar.url,
+      coverImage: coverImage.url ?? "",
+      email,
+      password,
+      username: username.toLowerCase(),
+    });
 
-  const createdUser = await User.findById(user._id).set(
-    "-password -refreshToken"
-  );
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering a user");
+    const createdUser = await User.findById(user._id).set(
+      "-password -refreshToken"
+    );
+    if (!createdUser) {
+      throw new ApiError(500, "Something went wrong while registering a user");
+    }
+
+    return res
+      .status(201)
+      .json(new ApiResponse(201, "User created successfully!", createdUser));
+  } catch (error) {
+    console.log("User creation failed");
+    if (avatar) {
+      await deleteFromCloudinary(avatar.public_id);
+    }
+    if (coverImage) {
+      await deleteFromCloudinary(coverImage.public_id);
+    }
+    throw new ApiError(
+      500,
+      "Something went wrong while registering a user and images were deleted"
+    );
   }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, "User created successfully!", createdUser));
 });
 
 export { registerUser };
