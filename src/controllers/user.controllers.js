@@ -196,10 +196,31 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
     const options = {
-      http,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
     };
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessAndRefreshToken(user?._id);
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          "Access token and refresh token successfully generated",
+          {
+            accessToken,
+            refreshToken: newRefreshToken,
+          }
+        )
+      );
   } catch (error) {
     console.log("");
+    throw new ApiError(
+      500,
+      "Something went wrong while refreshing access token"
+    );
   }
 });
 
