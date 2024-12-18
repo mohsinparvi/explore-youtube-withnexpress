@@ -152,9 +152,9 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-const logoutUser=asyncHandler(async(req,res)=>{
-  const accessToken=req.cookies();
-})
+const logoutUser = asyncHandler(async (req, res) => {
+  const accessToken = req.cookies();
+});
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
@@ -183,4 +183,4 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, refreshAccessToken };
+export { registerUser, loginUser, refreshAccessToken, logoutUser };
