@@ -8,6 +8,8 @@ import {
   getUsers,
   getUserById,
   getCurrentUser,
+  updateUser,
+  updateAvatar,
 } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -33,6 +35,11 @@ router.route("/").get(getUsers);
 
 //secured routes
 router.route("/get-current-user").get(verifyJWT, getCurrentUser);
+router
+  .route("/update-avatar")
+  .post(verifyJWT, upload.single("avatar"), updateAvatar);
+router.route("/").post(verifyJWT, updateUser);
+
 router.route("/:userId").get(verifyJWT, getUserById);
 
 router.route("/logout").post(verifyJWT, logoutUser);

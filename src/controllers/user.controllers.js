@@ -7,7 +7,7 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
-
+import validator from "express-validator";
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -57,17 +57,13 @@ const registerUser = asyncHandler(async (req, res) => {
   let avatar;
   try {
     avatar = await uploadOnCloudinary(avatarLocalPath);
-    console.log("uplaoded avatar", avatar);
   } catch (error) {
-    console.log("error uploading avatar", error);
     throw new ApiError(500, `Failed to upload avatar`);
   }
   let coverImage;
   try {
     coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    console.log("uplaoded cover Image", coverImage);
   } catch (error) {
-    console.log("error uploading cover Image", error);
     throw new ApiError(500, `Failed to upload avatar`);
   }
   try {
@@ -91,7 +87,6 @@ const registerUser = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(201, "User created successfully!", createdUser));
   } catch (error) {
-    console.log("User creation failed");
     if (avatar) {
       await deleteFromCloudinary(avatar.public_id);
     }
@@ -278,6 +273,74 @@ const getUserById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "get user data succesfully", user));
 });
 
+const updateUser = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  if (!fullName || !email) {
+    throw new ApiError(400, "fullname and email is required");
+  }
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          fullName,
+          email: email.toLowerCase(),
+        },
+      },
+      {
+        new: true,
+      }
+    ).select("-password -refreshToken");
+    console.log("updatedUser", updatedUser);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "User updated successfully", updatedUser));
+  } catch (error) {
+    throw new ApiError(
+      500,
+      error.message ?? "Something went wrong while updating user"
+    );
+  }
+});
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const localAvatarPath = req.file?.path;
+  if (!localAvatarPath) {
+    throw new ApiError(400, "Avatar file is required");
+  }
+
+  try {
+    const updatedAvatar = await uploadOnCloudinary(localAvatarPath);
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          avatar: updatedAvatar.url,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Avatar is updated", user));
+  } catch (error) {
+    throw new ApiError(
+      500,
+      error.message ?? "Something went wrong while updating avatar"
+    );
+  }
+});
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim() == "") {
+    throw new ApiError(400, "Username us required");
+  }
+  await User;
+});
+
 export {
   registerUser,
   loginUser,
@@ -287,4 +350,6 @@ export {
   getUsers,
   getUserById,
   getCurrentUser,
+  updateUser,
+  updateAvatar,
 };
