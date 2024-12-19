@@ -34,7 +34,6 @@ const registerUser = asyncHandler(async (req, res) => {
   if (![fullName, email, username, password].every((field) => field?.trim())) {
     throw new ApiError(400, "All fields are required");
   }
-  console.log("i am here......");
   const existedUser = await User.findOne({
     $or: [{ email }, { username }],
   });
@@ -129,14 +128,9 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid user credentials");
   }
-  console.log("isPasswordValid", isPasswordValid);
-  console.log("-----------------------------\n");
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user?._id
   );
-  console.log("accessToken", accessToken);
-  console.log("refreshToken", refreshToken);
-  console.log("\n-----------------------------\n");
 
   const loggedInUser = await User.findById(user?._id).select(
     "-password -refreshToken"
@@ -230,4 +224,36 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, refreshAccessToken, logoutUser };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    throw new ApiError(400, "Password is required");
+  }
+  const userId = req.user?._id;
+  const user = await User.findById(userId);
+  if (!password) {
+    throw new ApiError(401, "User not found");
+  }
+  const isPasswordValid = user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid password please try again!");
+  }
+  const updatedUser = await User.findByIdAndUpdate({
+    userId,
+    password,
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Password updated successfully, please login"));
+  // if(password!==)
+});
+const getUsers = asyncHandler(async (req, res) => {});
+
+export {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  changeCurrentPassword,
+};
