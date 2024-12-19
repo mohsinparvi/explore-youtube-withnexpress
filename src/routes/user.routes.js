@@ -44,8 +44,8 @@ router.route("/get-watch-history").get(verifyJWT, getWatchHistory);
 
 router
   .route("/update-avatar")
-  .post(verifyJWT, upload.single("avatar"), updateAvatar);
-router.route("/").post(verifyJWT, updateUser);
+  .patch(verifyJWT, upload.single("avatar"), updateAvatar);
+router.route("/").patch(verifyJWT, updateUser);
 
 router.route("/:userId").get(verifyJWT, getUserById);
 
