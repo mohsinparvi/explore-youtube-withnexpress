@@ -225,30 +225,58 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
-  const { password } = req.body;
-  if (!password) {
+  const { oldPassword, newPassword } = req.body;
+  if (!newPassword && !oldPassword) {
     throw new ApiError(400, "Password is required");
   }
   const userId = req.user?._id;
   const user = await User.findById(userId);
-  if (!password) {
+  if (!user) {
     throw new ApiError(401, "User not found");
   }
-  const isPasswordValid = user.isPasswordCorrect(password);
+  const isPasswordValid = user.isPasswordCorrect(oldPassword);
   if (!isPasswordValid) {
-    throw new ApiError(400, "Invalid password please try again!");
+    throw new ApiError(400, "Old password is incorrect");
   }
-  const updatedUser = await User.findByIdAndUpdate({
-    userId,
-    password,
-  });
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, "Password updated successfully, please login"));
-  // if(password!==)
+    .json(
+      new ApiResponse(200, "Password updated successfully, please login", {})
+    );
 });
-const getUsers = asyncHandler(async (req, res) => {});
+const getCurrentUser = asyncHandler(async (req, res) => {
+  console.log("req.user", req.user);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Current user data", req.user));
+});
+const getUsers = asyncHandler(async (_, res) => {
+  const users = await User.find().select("-password -refreshToken");
+  if (!users) {
+    throw new ApiError(400, "Something went wrong while getting users");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Get all users succesfully", users));
+});
+const getUserById = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  console.log("userId", userId);
+  if (!userId) {
+    throw new ApiError(404, "Please provide user id");
+  }
+  const user = await User.findById(userId).select("-password -refreshToken");
+  if (!user) {
+    throw new ApiError(404, "User not found!");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "get user data succesfully", user));
+});
 
 export {
   registerUser,
@@ -256,4 +284,7 @@ export {
   refreshAccessToken,
   logoutUser,
   changeCurrentPassword,
+  getUsers,
+  getUserById,
+  getCurrentUser,
 };
