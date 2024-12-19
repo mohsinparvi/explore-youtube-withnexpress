@@ -10,6 +10,8 @@ import {
   getCurrentUser,
   updateUser,
   updateAvatar,
+  getUserChannelProfile,
+  getWatchHistory,
 } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -35,6 +37,11 @@ router.route("/").get(getUsers);
 
 //secured routes
 router.route("/get-current-user").get(verifyJWT, getCurrentUser);
+router
+  .route("/get-channel-profile/:username")
+  .get(verifyJWT, getUserChannelProfile);
+router.route("/get-watch-history").get(verifyJWT, getWatchHistory);
+
 router
   .route("/update-avatar")
   .post(verifyJWT, upload.single("avatar"), updateAvatar);
