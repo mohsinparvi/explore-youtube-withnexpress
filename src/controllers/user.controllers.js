@@ -11,8 +11,8 @@ import jwt from "jsonwebtoken";
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -129,9 +129,15 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid user credentials");
   }
+  console.log("isPasswordValid", isPasswordValid);
+  console.log("-----------------------------\n");
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user?._id
   );
+  console.log("accessToken", accessToken);
+  console.log("refreshToken", refreshToken);
+  console.log("\n-----------------------------\n");
+
   const loggedInUser = await User.findById(user?._id).select(
     "-password -refreshToken"
   );
